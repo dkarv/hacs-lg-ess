@@ -27,13 +27,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-    # We cannot check with current ESS implementation...
 
-    try:
-        ess = await ESS.create("TEST_ENTRY", data[CONF_HOST], data[CONF_PASSWORD])
-    except Exception as e:
-        await ess.destruct()
-        raise e
+    await ESS.create(None, data[CONF_PASSWORD], data[CONF_HOST])
 
     # Return info that you want to store in the config entry.
     return {"title": "LG ESS"}

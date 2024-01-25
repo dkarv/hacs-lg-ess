@@ -21,11 +21,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     try:
-        ess = await ESS.create("LG_ESS", entry.data["password"], entry.data["host"])
+        ess = await ESS.create(None, entry.data["password"], entry.data["host"])
         hass.data[DOMAIN][entry.entry_id] = ess
     except ESSException as e:
         _LOGGER.exception("Error setting up ESS api")
-        await ess.destruct()
         raise ConfigEntryNotReady from e
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
