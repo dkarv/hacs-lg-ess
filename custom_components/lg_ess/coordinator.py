@@ -11,10 +11,27 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-class CommonCoordinator(DataUpdateCoordinator):
-    """LG ESS coordinator.
+class ESSCoordinator(DataUpdateCoordinator):
+    """LG ESS basic coordinator."""
 
-    Data:
+    _ess: ESS
+
+    def __init__(
+        self, hass: HomeAssistant, ess: ESS, name: str, interval: timedelta
+    ) -> None:
+        """Initialize my coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=name,
+            update_interval=interval,
+        )
+        self._ess = ess
+
+
+class CommonCoordinator(ESSCoordinator):
+    """LG ESS common coordinator.
+
     {'PV':
         {'brand': 'LGE-SOLAR', 'capacity': '10935',
             'pv1_voltage': '52.900002', 'pv2_voltage': '36.099998', 'pv3_voltage': '35.500000',
@@ -45,21 +62,72 @@ class CommonCoordinator(DataUpdateCoordinator):
         """Initialize my coordinator."""
         super().__init__(
             hass,
-            _LOGGER,
-            # Name of the data. For logging purposes.
+            ess,
             name="LG ESS common",
-            # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=5),
+            interval=timedelta(seconds=30),
         )
-        self.ess = ess
 
     async def _async_update_data(self):
-        """Fetch data from API endpoint.
+        return await self._ess.get_common()
 
-        This is the place to pre-process the data to lookup tables
-        so entities can quickly look up their data.
-        """
-        #        try:
-        # Note: asyncio.TimeoutError and aiohttp.ClientError are already
-        # handled by the data update coordinator.
-        return await self.ess.get_common()
+
+class SystemInfoCoordinator(ESSCoordinator):
+    """LG ESS system info coordinator.
+
+    {'pms':
+        {'model': 'XXXXXXXXXXX', 'serialno': 'XXXXXXXXXXXXXXXX', 'ac_input_power': '13500', 'ac_output_power': '10', 'install_date': 'YYYY-MM-DD'},
+    'batt':
+        {'capacity': '160', 'type': 'hbp', 'hbc_cycle_count_1': '0', 'hbc_cycle_count_2': '0', 'install_date': 'YYYY-MM-DD'},
+    'version':
+        {'pms_version': 'AA.BB.CCCC', 'pms_build_date': 'YYYY-MM-DD XXXXX', 'pcs_version': 'LG 05.00.01.00 XXXX A.BBB.C',
+        'bms_version': 'BMS 02.03.00.04 / DCDC 16.11.0.0 ', 'bms_unit1_version': 'BMS 02.03.00.04 / DCDC 16.11.0.0 ', 'bms_unit2_version': ' '}}
+    """
+
+    def __init__(self, hass: HomeAssistant, ess: ESS) -> None:
+        """Initialize my coordinator."""
+        super().__init__(
+            hass,
+            ess,
+            name="LG ESS system info",
+            interval=timedelta(minutes=10),
+        )
+
+    async def _async_update_data(self):
+        return await self._ess.get_systeminfo()
+
+
+class HomeCoordinator(ESSCoordinator):
+    """LG ESS system info coordinator.
+
+    {'statistics':
+        {'pcs_pv_total_power': '0', 'batconv_power': '540', 'bat_use': '1', 'bat_status': '2', 'bat_user_soc': '61.4',
+        'load_power': '541', 'ac_output_power': '10', 'load_today': '0.0', 'grid_power': '0',
+        'current_day_self_consumption': '81.6', 'current_pv_generation_sum': '26191', 'current_grid_feed_in_energy': '4810'},
+    'direction':
+        {'is_direct_consuming_': '0', 'is_battery_charging_': '0', 'is_battery_discharging_': '1', 'is_grid_selling_': '0',
+        'is_grid_buying_': '0', 'is_charging_from_grid_': '0', 'is_discharging_to_grid_': '0'},
+    'operation':
+        {'status': 'start', 'mode': '1', 'pcs_standbymode': 'false', 'drm_mode0': '0', 'remote_mode': '0', 'drm_control': '0'},
+    'wintermode':
+        {'winter_status': 'off', 'backup_status': 'off'},
+    'backupmode': '',
+    'pcs_fault':
+        {'pcs_status': 'pcs_ok', 'pcs_op_status': 'pcs_run'},
+    'heatpump':
+        {'heatpump_protocol': '0', 'heatpump_activate': 'off', 'current_temp': '0', 'heatpump_working': 'off'},
+    'evcharger':
+        {'ev_activate': 'off', 'ev_power': '0'},
+    'gridWaitingTime': '0'}
+    """
+
+    def __init__(self, hass: HomeAssistant, ess: ESS) -> None:
+        """Initialize my coordinator."""
+        super().__init__(
+            hass,
+            ess,
+            name="LG ESS home",
+            interval=timedelta(seconds=10),
+        )
+
+    async def _async_update_data(self):
+        return await self._ess.get_home()
