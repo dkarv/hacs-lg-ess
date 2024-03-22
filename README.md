@@ -1,10 +1,17 @@
 # hacs-lg-ess
-HACS integration for the LG ESS inverter.
-Thanks for the python library https://github.com/gluap/pyess this is based on.
+HomeAssistant HACS integration for the LG ESS inverter.
+Built with the Python library https://github.com/gluap/pyess (thanks!).
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dkarv&repository=hacs-lg-ess)
+
+
 
 ## Setup
 
-You need a password, __which is not the account password__. Instead there are a few ways to get it:
+The integration can be configured easily through the UI after getting the password. 
+
+
+You need the local device password, __which is not the account password__. Instead there are a few ways to get it:
 
 1. Get the mac address of the lg ess and convert it. Mac address AA:BB:CC:DD:11:22 -> password aabbccdd1122
 2. Extract it using the pyess library (it has a cli) __while connected to the devices WiFi__.
