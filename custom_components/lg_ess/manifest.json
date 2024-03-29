@@ -5,11 +5,14 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/dkarv/hacs-lg-ess/blob/main/README.md",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "homekit": {},
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/dkarv/hacs-lg-ess/issues",
+  "documentation": "https://www.home-assistant.io/integrations/lg_ess",
+  "homekit": {},
+  "iot_class": "local_polling",
   "requirements": ["pyess==0.1.15"],
   "ssdp": [],
-  "zeroconf": []
+  "zeroconf": ["_pmsctrl._tcp.local."]
 }

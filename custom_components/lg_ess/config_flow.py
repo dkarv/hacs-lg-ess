@@ -6,9 +6,9 @@ from pyess.aio_ess import ESS, ESSAuthException, ESSException
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
 
@@ -17,6 +17,11 @@ _LOGGER = logging.getLogger(__name__)
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
+        vol.Required(CONF_PASSWORD): str,
+    }
+)
+STEP_DISCOVERED_DATA_SCHEMA = vol.Schema(
+    {
         vol.Required(CONF_PASSWORD): str,
     }
 )
@@ -34,19 +39,24 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     return {"title": "LG ESS"}
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class EssConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for LG ESS."""
 
-    VERSION = 1
+    def __init__(self) -> None:
+        """Initialize the ESS config flow."""
+        self.discovery_schema: vol.Schema | None = None
+
+    VERSION = 2
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 info = await validate_input(self.hass, user_input)
+                # user_input['serialno'] = info['serialno']
                 return self.async_create_entry(title=info["title"], data=user_input)
             except ESSAuthException:
                 _LOGGER.exception("Wrong password")
@@ -61,3 +71,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
         )
+
+
+#    async def async_step_zeroconf(
+#        self, discovery_info: zeroconf.ZeroconfServiceInfo
+#    ) -> ConfigFlowResult:
+#        """Handle the zeroconf discovery."""
+#        host = discovery_info.host
+#        properties = discovery_info.properties
+#        _LOGGER.info("Discovered device %s with %s", host, discovery_info)
+#        host = discovery_info.host
+#        id = {CONF_HOST: host}
+#        await self.async_set_unique_id(host)
+#        self._abort_if_unique_id_configured(updates={CONF_HOST: host})
+#
+#        self._async_abort_entries_match({CONF_HOST: host})
+#
+#        self.discovery_schema = vol.Schema(
+#            {
+#                vol.Required(CONF_HOST, default=host): str,
+#            }
+#        )
+#
+#        return await self.async_step_user()
+#
