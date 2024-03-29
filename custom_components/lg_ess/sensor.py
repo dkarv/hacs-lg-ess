@@ -181,6 +181,7 @@ async def async_setup_entry(
                 "bat_use",
                 icon=_BATTERYHOME,
             ),
+            # 1: CHARGING, 2: DISCHARGING
             MeasurementSensor(
                 home_coordinator,
                 device_info,
@@ -586,6 +587,20 @@ async def async_setup_entry(
                 icon=_TOGRID,
             ),
             EssSensor(common_coordinator, device_info, "PCS", "operation_mode"),
+            DirectionalPowerSensor(
+                home_coordinator,
+                device_info,
+                "batt_directional",
+                "is_battery_charging_",
+                "batconv_power",
+            ),
+            DirectionalPowerSensor(
+                home_coordinator,
+                device_info,
+                "grid_directional",
+                "is_grid_selling_",
+                "grid_power",
+            ),
         ]
     )
 
@@ -623,7 +638,6 @@ class EssSensor(CoordinatorEntity[ESSCoordinator], SensorEntity):
         )
         self._attr_translation_key = entity
         self._attr_unique_id = f"${device_info["serial_number"]}_${entity}"
-        # self._attr_unique_id = entity
         self._attr_icon = icon
         self.entity_id = f"sensor.${DOMAIN}_${entity}"
 
@@ -672,7 +686,6 @@ class BinarySensor(CoordinatorEntity[ESSCoordinator], BinarySensorEntity):
             entity = group + "_" + key
         self._attr_translation_key = entity
         self._attr_unique_id = f"${device_info["serial_number"]}_${entity}"
-        # self._attr_unique_id = entity
         self._attr_icon = icon
         self.entity_id = f"binary_sensor.${DOMAIN}_${entity}"
 
@@ -743,6 +756,40 @@ class IncreasingEnergySensor(IncreasingSensor):
             coordinator, device_info, group, key, UnitOfEnergy.WATT_HOUR, icon=icon
         )
         self._attr_suggested_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+
+
+class DirectionalPowerSensor(CoordinatorEntity[ESSCoordinator], SensorEntity):
+    """Calculate the directional power."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(
+        self,
+        coordinator,
+        device_info: DeviceInfo,
+        key: str,
+        direction_key: str,
+        source_key: str,
+    ) -> None:
+        """Initialize the sensor with the common coordinator."""
+        super().__init__(coordinator)
+        self._attr_device_info = device_info
+        self._direction_key = direction_key
+        self._source_key = source_key
+        self._attr_translation_key = key
+        self._attr_unique_id = f"${device_info["serial_number"]}_${key}"
+        self.entity_id = f"sensor.${DOMAIN}_${key}"
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        factor = 1
+        if self.coordinator.data["direction"][self._direction_key] == "1":
+            factor = -1
+        self._attr_native_value = (
+            int(self.coordinator.data["statistics"][self._source_key]) * factor
+        )
+        self.async_write_ha_state()
 
 
 def _parse_date(raw_input: str) -> date:
