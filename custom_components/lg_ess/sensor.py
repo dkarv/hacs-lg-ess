@@ -625,7 +625,7 @@ class EssSensor(CoordinatorEntity[ESSCoordinator], SensorEntity):
         self._attr_unique_id = f"${device_info["serial_number"]}_${entity}"
         # self._attr_unique_id = entity
         self._attr_icon = icon
-        self.entity_id = f"sensor.${DOMAIN}_${key}"
+        self.entity_id = f"sensor.${DOMAIN}_${entity}"
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -674,7 +674,7 @@ class BinarySensor(CoordinatorEntity[ESSCoordinator], BinarySensorEntity):
         self._attr_unique_id = f"${device_info["serial_number"]}_${entity}"
         # self._attr_unique_id = entity
         self._attr_icon = icon
-        self.entity_id = f"binary_sensor.${DOMAIN}_${key}"
+        self.entity_id = f"binary_sensor.${DOMAIN}_${entity}"
 
     @callback
     def _handle_coordinator_update(self) -> None:
