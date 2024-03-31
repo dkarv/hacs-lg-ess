@@ -6,6 +6,7 @@ from pyess.aio_ess import ESS, ESSAuthException, ESSException
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.components import zeroconf
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
@@ -14,17 +15,14 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_HOST): str,
-        vol.Required(CONF_PASSWORD): str,
-    }
-)
-STEP_DISCOVERED_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_PASSWORD): str,
-    }
-)
+
+def _ess_schema(host: str | None = None):
+    return vol.Schema(
+        {
+            vol.Required(CONF_HOST, default=host): str,
+            vol.Required(CONF_PASSWORD): str,
+        }
+    )
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
@@ -68,30 +66,22 @@ class EssConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
 
-        return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
-        )
+        data = self.discovery_schema or _ess_schema()
+        return self.async_show_form(step_id="user", data_schema=data, errors=errors)
 
+    async def async_step_zeroconf(
+        self, discovery_info: zeroconf.ZeroconfServiceInfo
+    ) -> ConfigFlowResult:
+        """Handle the zeroconf discovery."""
+        host = discovery_info.host
+        _LOGGER.info("Discovered device %s with %s", host, discovery_info)
+        host = discovery_info.host
+        data = {CONF_HOST: host}
+        await self.async_set_unique_id(host)
+        self._abort_if_unique_id_configured(updates=data)
 
-#    async def async_step_zeroconf(
-#        self, discovery_info: zeroconf.ZeroconfServiceInfo
-#    ) -> ConfigFlowResult:
-#        """Handle the zeroconf discovery."""
-#        host = discovery_info.host
-#        properties = discovery_info.properties
-#        _LOGGER.info("Discovered device %s with %s", host, discovery_info)
-#        host = discovery_info.host
-#        id = {CONF_HOST: host}
-#        await self.async_set_unique_id(host)
-#        self._abort_if_unique_id_configured(updates={CONF_HOST: host})
-#
-#        self._async_abort_entries_match({CONF_HOST: host})
-#
-#        self.discovery_schema = vol.Schema(
-#            {
-#                vol.Required(CONF_HOST, default=host): str,
-#            }
-#        )
-#
-#        return await self.async_step_user()
-#
+        self._async_abort_entries_match(data)
+
+        self.discovery_schema = _ess_schema(host)
+
+        return await self.async_step_user()
